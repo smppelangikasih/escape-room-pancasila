@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Escape Room: Misi Penyelamat Pancasila</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+    body { 
+      background-color: #0d1117; 
+      color: #fff; 
+      margin: 0; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    
+    /* Container Ruangan dengan Background Gambar */
+    .room-container {
+      position: relative;
+      width: 100%;
+      max-width: 1200px;
+      aspect-ratio: 16 / 9;
+      background-image: url('background perpus.png');
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    }
+
+    /* Area Hotspot Interaktif (Transparan tapi bisa diklik) */
+    .hotspot {
+      position: absolute;
+      cursor: pointer;
+      transition: all 0.3s;
+      border-radius: 8px;
+    }
+    .hotspot:hover {
+      background: rgba(78, 239, 144, 0.2);
+      box-shadow: 0 0 15px rgba(78, 239, 144, 0.5);
+    }
+    
+    /* Koordinat Hotspot (Disesuaikan dengan gambar) */
+    .painting { left: 11%; top: 14%; width: 17%; height: 33%; }
+    .desk { left: 2%; top: 58%; width: 31%; height: 26%; }
+    .bookshelf { left: 71%; top: 14%; width: 26%; height: 70%; }
+    .door { left: 36%; top: 18%; width: 28%; height: 60%; }
+    
+    /* Status jika teka-teki sudah diselesaikan */
+    .solved {
+      pointer-events: none;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    /* Modal Overlay (Pop-up Teka-Teki) */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: #16213e;
+      border: 2px solid #4eef90;
+      padding: 30px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
+      box-shadow: 0 0 20px #4eef90;
+    }
+    .modal-overlay.active { display: flex; }
+
+    /* Elemen UI dalam Modal */
+    h2 { color: #4eef90; margin-top: 0; }
+    p { color: #a8b2c1; line-height: 1.5; }
+    input { 
+      width: 100%; padding: 12px; margin: 15px 0; 
+      background: #0d1117; color: #4eef90; 
+      border: 1px solid #4eef90; border-radius: 6px; 
+      font-size: 16px; text-align: center;
+    }
+    button {
+      background: #4eef90; color: #0d1117;
+      border: none; padding: 12px 20px;
+      border-radius: 6px; cursor: pointer;
+      font-size: 16px; font-weight: bold; width: 100%;
+      margin-bottom: 10px;
+    }
+    button:hover { background: #3ad37b; }
+    .btn-close { background: #e94560; color: white; border: none; border: 1px solid #e94560;}
+    .btn-close:hover { background: #c0354e; }
+    .feedback { font-weight: bold; margin-top: 10px; min-height: 24px; }
+    
+    /* Notifikasi Tengah Layar */
+    #notification {
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.8); padding: 10px 20px;
+      border-radius: 20px; font-weight: bold; display: none;
+      border: 1px solid #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ruangan Escape Room -->
+  <div class="room-container">
+    <div id="notif" id="notification">Mulai penjelajahan!</div>
+    
+    <!-- Area Klik (Hotspots) -->
+    <div class="hotspot painting" id="hot-lukisan" onclick="openModal('modal-lukisan')" title="Periksa Lukisan"></div>
+    <div class="hotspot desk" id="hot-meja" onclick="openModal('modal-meja')" title="Periksa Laci Meja"></div>
+    <div class="hotspot bookshelf" id="hot-rak" onclick="openModal('modal-rak')" title="Periksa Rak Buku"></div>
+    <div class="hotspot door" id="hot-pintu" onclick="cekPintuUtama()" title="Pintu Utama"></div>
+  </div>
+
+  <!-- Modal Teka-Teki 1: Lukisan (Simbol Pancasila) -->
+  <div class="modal-overlay" id="modal-lukisan">
+    <div class="modal-content">
+      <h2>🖼️ Brankas Balik Lukisan</h2>
+      <p>Susunlah nomor urut sila (1-5) yang tepat untuk deretan simbol berikut: <br><b>Rantai &rarr; Pohon Beringin &rarr; Bintang &rarr; Padi Kapas &rarr; Kepala Banteng</b></p>
+      <input type="text" id="ans-lukisan" placeholder="Contoh PIN: 12345" maxlength="5">
+      <button onclick="cekLukisan()">Buka Brankas</button>
+      <button class="btn-close" onclick="closeModal('modal-lukisan')">Tutup</button>
+      <div class="feedback" id="fb-lukisan"></div>
+    </div>
+  </div>
+
+  <!-- Modal Teka-Teki 2: Meja (Studi Kasus) -->
+  <div class="modal-overlay" id="modal-meja">
+    <div class="modal-content">
+      <h2>🗄️ Laci Meja Rahasia</h2>
+      <p>Kunci laci ini butuh 4 digit PIN. Temukan dari analisis kasus berikut (Sila 1-5):</p>
+      <ul style="text-align: left; color:#a8b2c1; font-size:14px;">
+        <li>1. Menghargai teman yang sedang beribadah.</li>
+        <li>2. Pemilihan ketua OSIS dengan musyawarah mufakat.</li>
+        <li>3. Bangga membeli produk sepatu buatan lokal.</li>
+        <li>4. Membagi tugas kebersihan kelas dengan adil.</li>
+      </ul>
+      <input type="text" id="ans-meja" placeholder="Masukkan 4 Digit PIN" maxlength="4">
+      <button onclick="cekMeja()">Buka Laci</button>
+      <button class="btn-close" onclick="closeModal('modal-meja')">Tutup</button>
+      <div class="feedback" id="fb-meja"></div>
+    </div>
+  </div>
+
+  <!-- Modal Teka-Teki 3: Rak Buku (Hierarki) -->
+  <div class="modal-overlay" id="modal-rak">
+    <div class="modal-content">
+      <h2>📚 Buku Tata Hukum</h2>
+      <p>Urutkan hierarki Peraturan Perundang-undangan ini dari yang paling tinggi ke rendah (1-4):<br>
+      <i>1. Peraturan Daerah (Perda)</i><br>
+      <i>2. UUD 1945</i><br>
+      <i>3. Undang-Undang / Perppu</i><br>
+      <i>4. Ketetapan MPR (Tap MPR)</i></p>
+      <input type="text" id="ans-rak" placeholder="Masukkan urutan angka (misal: 1234)" maxlength="4">
+      <button onclick="cekRak()">Buka Kunci Buku</button>
+      <button class="btn-close" onclick="closeModal('modal-rak')">Tutup</button>
+      <div class="feedback" id="fb-rak"></div>
+    </div>
+  </div>
+
+  <!-- Modal Kemenangan (Pintu Terbuka) -->
+  <div class="modal-overlay" id="modal-menang">
+    <div class="modal-content" style="border-color:#3ad37b; box-shadow: 0 0 30px #3ad37b;">
+      <h2>🚪 PINTU TERBUKA!</h2>
+      <p>Selamat! Kamu telah menguasai nilai-nilai Pancasila, menganalisis kasus, dan memahami hierarki hukum negara. Kamu berhasil keluar dari Ruang Arsip Kebangsaan!</p>
+      <button onclick="location.reload()">Main Lagi</button>
+    </div>
+  </div>
+
+  <script>
+    // Menyimpan progres permainan
+    let progres = {
+      lukisan: false,
+      meja: false,
+      rak: false
+    };
+
+    // Fungsi Buka/Tutup Modal
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { 
+      document.getElementById(id).classList.remove('active'); 
+      document.getElementById('ans-' + id.split('-')[1]).value = '';
+      document.getElementById('fb-' + id.split('-')[1]).innerText = '';
+    }
+
+    // Fungsi Notifikasi Layar Utama
+    function showNotif(pesan, warna) {
+      const notif = document.getElementById('notif');
+      notif.innerText = pesan;
+      notif.style.color = warna;
+      notif.style.borderColor = warna;
+      notif.style.display = 'block';
+      setTimeout(() => { notif.style.display = 'none'; }, 3000);
+    }
+
+    // Cek Teka-teki Lukisan (Jawaban: 23154)
+    function cekLukisan() {
+      let ans = document.getElementById('ans-lukisan').value.trim();
+      let fb = document.getElementById('fb-lukisan');
+      if(ans === '23154') {
+        fb.style.color = '#4eef90';
+        fb.innerText = '✅ Benar! Kamu menemukan serpihan kunci pertama.';
+        progres.lukisan = true;
+        document.getElementById('hot-lukisan').classList.add('solved');
+        setTimeout(() => { closeModal('modal-lukisan'); showNotif('Kunci Lukisan Berhasil Dipecahkan!', '#4eef90'); }, 1500);
+      } else {
+        fb.style.color = '#e94560'; fb.innerText = '❌ Salah! Periksa lagi urutan silanya.';
+      }
+    }
+
+    // Cek Teka-teki Meja (Jawaban: 1435)
+    function cekMeja() {
+      let ans = document.getElementById('ans-meja').value.trim();
+      let fb = document.getElementById('fb-meja');
+      if(ans === '1435') {
+        fb.style.color = '#4eef90';
+        fb.innerText = '✅ Benar! Dokumen rahasia berhasil dibaca.';
+        progres.meja = true;
+        document.getElementById('hot-meja').classList.add('solved');
+        setTimeout(() => { closeModal('modal-meja'); showNotif('Kunci Laci Berhasil Dipecahkan!', '#4eef90'); }, 1500);
+      } else {
+        fb.style.color = '#e94560'; fb.innerText = '❌ PIN salah! Analisis kembali penerapan silanya.';
+      }
+    }
+
+    // Cek Teka-teki Rak Buku (Jawaban: 2431 - UUD, TAP MPR, UU, Perda)
+    function cekRak() {
+      let ans = document.getElementById('ans-rak').value.trim();
+      let fb = document.getElementById('fb-rak');
+      if(ans === '2431') {
+        fb.style.color = '#4eef90';
+        fb.innerText = '✅ Benar! Hierarki hukum berhasil diurutkan.';
+        progres.rak = true;
+        document.getElementById('hot-rak').classList.add('solved');
+        setTimeout(() => { closeModal('modal-rak'); showNotif('Kunci Buku Berhasil Dipecahkan!', '#4eef90'); }, 1500);
+      } else {
+        fb.style.color = '#e94560'; fb.innerText = '❌ Susunan salah! Ingat hukum tertinggi di Indonesia.';
+      }
+    }
+
+    // Cek Pintu Utama
+    function cekPintuUtama() {
+      if(progres.lukisan && progres.meja && progres.rak) {
+        openModal('modal-menang');
+      } else {
+        showNotif('Pintu Utama masih terkunci! Selesaikan semua teka-teki benda hijau terlebih dahulu.', '#e94560');
+      }
+    }
+  </script>
+</body>
+</html>
